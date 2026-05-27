@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cross-Play Multi FPS</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="coi-serviceworker.js"></script>
+    <!-- Include Three.js for 3D Graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="menu">
+        <h1>3D MULTIPLAYER FPS</h1>
+        <input type="text" id="ipInput" placeholder="Enter Server Room Code">
+        <button onclick="hostGame()">HOST PRIVATE GAME (WITH BOTS)</button>
+        <button onclick="joinGame()">JOIN FRIENDS</button>
+    </div>
+
+    <!-- Mobile Virtual Joysticks & UI -->
+    <div id="ui-container">
+        <div id="joystick-move"></div>
+        <div id="joystick-look"></div>
+        <button id="jump-btn">JUMP</button>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
