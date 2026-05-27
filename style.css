@@ -1,9 +1,0 @@
-body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background: #000; font-family: sans-serif; user-select: none; }
-#menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; background: rgba(0,0,0,0.8); padding: 30px; border-radius: 10px; z-index: 10; }
-input, button { display: block; width: 200px; padding: 10px; margin: 10px auto; border-radius: 5px; border: none; font-weight: bold; }
-button { background: #28a745; color: white; cursor: pointer; }
-button:hover { background: #218838; }
-#ui-container { position: absolute; bottom: 20px; width: 100%; height: 150px; display: none; pointer-events: none; }
-#joystick-move { position: absolute; left: 30px; bottom: 30px; width: 100px; height: 100px; background: rgba(255,255,255,0.2); border-radius: 50%; pointer-events: auto; }
-#joystick-look { position: absolute; right: 30px; bottom: 30px; width: 100px; height: 100px; background: rgba(255,255,255,0.2); border-radius: 50%; pointer-events: auto; }
-#jump-btn { position: absolute; right: 40px; bottom: 150px; width: 70px; height: 70px; background: #dc3545; border-radius: 50%; color: white; pointer-events: auto; }
