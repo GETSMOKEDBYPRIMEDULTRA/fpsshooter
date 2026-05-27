@@ -2,45 +2,73 @@ let scene, camera, renderer, player;
 let moveDirection = new THREE.Vector3();
 let bots = [];
 let isPlaying = false;
+let keys = {};
 
+// We use a clean block design to guarantee everything renders immediately
 function init3D() {
-    // 1. Setup 3D World Scene
+    // 1. Create Scene with a solid Blue Sky background (No black screen allowed!)
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xcccccc);
-    scene.fog = new THREE.FogExp2(0xcccccc, 0.015);
+    scene.background = new THREE.Color(0x87CEEB); 
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // 2. Add Lights & Ground Floor
-    const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-    scene.add(light);
+    // 2. Strong, bright lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(10, 20, 10);
+    scene.add(dirLight);
     
-    const floorGeo = new THREE.PlaneGeometry(100, 100);
-    const floorMat = new THREE.MeshBasicMaterial({ color: 0x555555 });
+    // 3. Bright Ground Floor Grid so you can see movement
+    const floorGeo = new THREE.PlaneGeometry(200, 200);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x228B22 }); // Grass Green
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    // 3. Create Player Object
+    const grid = new THREE.GridHelper(200, 50, 0x000000, 0xffffff);
+    grid.position.y = 0.01;
+    scene.add(grid);
+
+    // 4. Create Player & position clearly above ground
     player = new THREE.Object3D();
     player.position.set(0, 2, 0);
     scene.add(player);
-    player.add(camera); // Camera is attached inside the player head
+    player.add(camera); 
 
-    window.addEventListener('resize', onWindowResize);
     setupControls();
+    spawnBots(8);
     animate();
 }
 
-// --- OP AIM ASSIST & AUTO SHOOT ---
+// --- TARGET RED BLOCKS TO SHOOT ---
+function spawnBots(count) {
+    for(let i=0; i<count; i++) {
+        // Red boxes make easy targets
+        let botGeo = new THREE.BoxGeometry(1.5, 3, 1.5);
+        let botMat = new THREE.MeshStandardMaterial({color: 0xff0000}); 
+        let bot = new THREE.Mesh(botGeo, botMat);
+        
+        // Scatter them in front of the player
+        bot.position.set(Math.random()*40 - 20, 1.5, Math.random()* -30 - 10);
+        bot.health = 100;
+        bot.isDead = false;
+        scene.add(bot);
+        bots.push(bot);
+    }
+}
+
+// --- OP AIM ASSIST & AUTO-SHOOT ---
 function applyOPAimAssist() {
     let closestBot = null;
-    let maxDegrees = 0.95; // Snappiness threshold
+    let maxDegrees = 0.96; 
 
     bots.forEach(bot => {
+        if (bot.isDead) return;
         let botPos = bot.position.clone();
         let targetDir = botPos.sub(player.position).normalize();
         let cameraDir = new THREE.Vector3();
@@ -53,76 +81,48 @@ function applyOPAimAssist() {
     });
 
     if (closestBot) {
-        // Aggressively snap camera look direction to target bot
+        // Aggressively snap camera view to target box
         camera.lookAt(closestBot.position);
         
-        // AUTO SHOOT LOGIC
-        autoShootTarget(closestBot);
-    }
-}
-
-function autoShootTarget(target) {
-    // Deduct bot health instantly on crosshair collision
-    if (!target.isDead) {
-        target.health -= 1;
-        target.material.color.setHex(0xff0000); // Flash red
-        setTimeout(() => target.material.color.setHex(0x0000ff), 100);
+        // Auto Shoot
+        closestBot.health -= 2;
+        closestBot.material.color.setHex(0xffff00); // Flashes Yellow when shot
         
-        if (target.health <= 0) {
-            target.isDead = true;
-            scene.remove(target);
+        if (closestBot.health <= 0) {
+            closestBot.isDead = true;
+            scene.remove(closestBot);
         }
+    } else {
+        // Reset bot colors back to red if not targeted
+        bots.forEach(b => { if(!b.isDead) b.material.color.setHex(0xff0000); });
     }
 }
 
-// --- LOBBY SYSTEMS ---
+// --- SYSTEM HANDLERS ---
 function hostGame() {
     document.getElementById("menu").style.display = "none";
     document.getElementById("ui-container").style.display = "block";
     init3D();
-    spawnBots(5);
     isPlaying = true;
 }
 
 function joinGame() {
-    hostGame(); // P2P fallthrough logic for browser demo
+    hostGame(); 
 }
 
-function spawnBots(count) {
-    for(let i=0; i<count; i++) {
-        let botGeo = new THREE.CapsuleGeometry(0.5, 1.5, 4, 8);
-        let botMat = new THREE.MeshBasicMaterial({color: 0x0000ff});
-        let bot = new THREE.Mesh(botGeo, botMat);
-        bot.position.set(Math.random()*40 - 20, 1, Math.random()*40 - 20);
-        bot.health = 100;
-        bot.isDead = false;
-        scene.add(bot);
-        bots.push(bot);
-    }
-}
-
-// --- INPUT HANDLERS & ANIMATION ---
 function setupControls() {
-    // Standard Keybinds (PC)
-    window.addEventListener('keydown', (e) => {
-        if(e.code === "KeyW") moveDirection.z = -1;
-        if(e.code === "KeyS") moveDirection.z = 1;
-        if(e.code === "KeyA") moveDirection.x = -1;
-        if(e.code === "KeyD") moveDirection.x = 1;
-    });
-    window.addEventListener('keyup', (e) => {
-        if(["KeyW", "KeyS"].includes(e.code)) moveDirection.z = 0;
-        if(["KeyA", "KeyD"].includes(e.code)) moveDirection.x = 0;
-    });
+    window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+    window.addEventListener('keyup', (e) => { keys[e.code] = false; });
     
-    // PC Pointer Lock for Mouse Control
     document.body.addEventListener('click', () => {
         if(isPlaying) document.body.requestPointerLock();
     });
+    
     window.addEventListener('mousemove', (e) => {
         if (document.pointerLockElement === document.body) {
-            player.rotation.y -= e.movementX * 0.002;
-            camera.rotation.x -= e.movementY * 0.002;
+            player.rotation.y -= e.movementX * 0.0025;
+            camera.rotation.x -= e.movementY * 0.0025;
+            camera.rotation.x = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, camera.rotation.x));
         }
     });
 }
@@ -131,18 +131,23 @@ function animate() {
     requestAnimationFrame(animate);
     if (!isPlaying) return;
 
-    // Movement updates
-    let speed = 0.1;
-    player.translateOnAxis(moveDirection, speed);
+    // Smooth movement processing
+    let speed = 0.15;
+    if (keys['KeyW'] || keys['ArrowUp']) player.translateOnAxis(new THREE.Vector3(0,0,-1), speed);
+    if (keys['KeyS'] || keys['ArrowDown']) player.translateOnAxis(new THREE.Vector3(0,0,1), speed);
+    if (keys['KeyA'] || keys['ArrowLeft']) player.translateOnAxis(new THREE.Vector3(-1,0,0), speed);
+    if (keys['KeyD'] || keys['ArrowRight']) player.translateOnAxis(new THREE.Vector3(1,0,0), speed);
     
-    // Always run Aim Assist checks
-    applyOPAimAssist();
+    // Lock position to floor height
+    player.position.y = 2;
 
+    applyOPAimAssist();
     renderer.render(scene, camera);
 }
 
-function onWindowResize() {
+window.addEventListener('resize', () => {
+    if(!camera || !renderer) return;
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-}
+});
